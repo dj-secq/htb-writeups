@@ -3,6 +3,15 @@
   **Difficulty:** Very Easy
   **OS:** Kali Linux
 
+  ## Tasks
+  * **Task 1:** What does the acronym VM stand for? **Virtual Machine**
+  * **Task 2:** What tool do we use to interact with the operating system in order to issue commands via the shell. **terminal**
+  * **Task 3:** What service do we use to form our VPN connection into HTB labs? **openvpn**
+  * **Task 5:** What tool do we use to test our connection to the target with an ICMP echo request? **ping**
+  * **Task 6:** What is the name of the most common tool for finding open ports on a target? **nmap**
+  * **Task 7:** What service do we identify on port 23/tcp during our scans? **telnet**
+  * **Task 8:** What username is able to log into the target over telnet with a blank password? **root**
+  
   ## Objective
   Get the root flag from a misconfigured Telnet service.
 
