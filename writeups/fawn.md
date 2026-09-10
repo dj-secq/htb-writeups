@@ -30,7 +30,7 @@ Get the root flag from a misconfigured FTP service.
 4. Downloaded the flag to the local machine using the `get` command.
 
 ## Key Learning
-FTP transmits data in plain text, making it vulnerable to interception. 
+FTP transmits data in plain text, making it vulnerable to interception.
 Allowing anonymous login without restrictions is a critical misconfiguration that can expose sensitive files to unauthorized users.
 
 ## Flag

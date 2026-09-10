@@ -34,32 +34,32 @@ Get the root flag from a misconfigured MariaDB database.
 **Step 1: Enumeration**
 An Nmap scan reveals that port 3306 is open and running a MariaDB service.
 
-![Nmap Scan](images/sequel.png)
+![Nmap Scan](../images/sequel.png)
 
 **Step 2: Connecting to the Database**
 We connect to the target database using the `mysql` command-line client, specifying the `root` user and the target's IP address. No password is required.
 
-![Database Connection](images/sequel2.png)
+![Database Connection](../images/sequel2.png)
 
 **Step 3: Enumerating Databases**
 Once connected, we use the `SHOW DATABASES;` command to list the databases and find a unique database named `htb`. We select it using the `use htb;` command.
 
-![Show Databases](images/sequel3.png)
+![Show Databases](../images/sequel3.png)
 
 **Step 4: Finding the Tables**
 We list the tables in the `htb` database using `SHOW TABLES;` and identify the `config` table.
 
-![Show Tables](images/sequel4.png)
+![Show Tables](../images/sequel4.png)
 
 **Step 5: Examining the Columns**
 Using the `describe config;` command, we inspect the structure of the `config` table and find it contains a column named `flag`.
 
-![Describe Table](images/sequel5.png)
+![Describe Table](../images/sequel5.png)
 
 **Step 6: Retrieving the Flag**
 We execute `SELECT * FROM config;` to dump the contents of the table, revealing the flag.
 
-![Flag Retrieved](images/sequel6.png)
+![Flag Retrieved](../images/sequel6.png)
 
 ## Key Learning
 Exposing a database service directly to the internet without implementing proper authentication (such as leaving the `root` password blank) is a critical security flaw. It grants attackers unrestricted access to view, modify, or exfiltrate sensitive data.

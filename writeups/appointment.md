@@ -33,17 +33,17 @@ Exploit a SQL injection vulnerability on a login page to bypass authentication a
 **Step 1: Enumeration**
 Running an Nmap service scan reveals that port 80 is open and running an Apache web server.
 
-![Nmap Scan](images/appointment.png)
+![Nmap Scan](../images/appointment.png)
 
 **Step 2: SQL Injection (Authentication Bypass)**
 Navigating to the target IP in a browser reveals a login portal. By entering `admin'#` as the username and providing any random password, we can comment out the password check in the backend SQL query.
 
-![Login Bypass](images/appointment3.png)
+![Login Bypass](../images/appointment3.png)
 
 **Step 3: Flag Capture**
 The payload successfully bypasses the login, granting us access to the dashboard where the flag is displayed.
 
-![Flag Captured](images/appointment2.png)
+![Flag Captured](../images/appointment2.png)
 
 ## Key Learning
 Failing to sanitize user input in web applications leads to SQL Injection (SQLi) vulnerabilities. By injecting SQL meta-characters like `'` and `#`, an attacker can alter the query logic, completely bypassing authentication mechanisms.

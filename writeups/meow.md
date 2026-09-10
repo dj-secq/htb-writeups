@@ -11,7 +11,7 @@
   * **Task 6:** What is the name of the most common tool for finding open ports on a target? **nmap**
   * **Task 7:** What service do we identify on port 23/tcp during our scans? **telnet**
   * **Task 8:** What username is able to log into the target over telnet with a blank password? **root**
-  
+
   ## Objective
   Get the root flag from a misconfigured Telnet service.
 
